@@ -2,17 +2,17 @@ import asyncio
 import json
 import logging
 import re
-import anthropic
+from groq import AsyncGroq
 from config import settings
 
 logger = logging.getLogger(__name__)
 
 class OllamaService:
-    """Thin wrapper around the Anthropic API, preserving the original interface."""
+    """Thin wrapper around the Groq API, preserving the original interface."""
 
     def __init__(self):
-        self._client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
-        self.model = settings.ANTHROPIC_MODEL
+        self._client = AsyncGroq(api_key=settings.GROQ_API_KEY)
+        self.model = settings.GROQ_MODEL
         self.max_retries = settings.MAX_RETRIES
         self.backoff_base = settings.RETRY_BACKOFF_BASE
 
@@ -26,27 +26,26 @@ class OllamaService:
 
         for attempt in range(self.max_retries + 1):
             try:
-                message = await self._client.messages.create(
+                response = await self._client.chat.completions.create(
                     model=target_model,
                     max_tokens=2048,
-                    system=system_prompt,
-                    messages=[{"role": "user", "content": user_prompt}],
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
                 )
-                text = next(
-                    (block.text for block in message.content if block.type == "text"),
-                    "",
-                )
+                text = response.choices[0].message.content or ""
                 return text, target_model
             except Exception as exc:
                 logger.warning(
-                    "Anthropic attempt %d/%d failed (model=%s): %s",
+                    "Groq attempt %d/%d failed (model=%s): %s",
                     attempt + 1, self.max_retries + 1, target_model, exc,
                 )
                 if attempt < self.max_retries:
                     await asyncio.sleep(self.backoff_base ** attempt)
                 else:
                     raise RuntimeError(
-                        f"Anthropic API failed after {self.max_retries + 1} attempts: {exc}"
+                        f"Groq API failed after {self.max_retries + 1} attempts: {exc}"
                     )
 
     def extract_json(self, text: str) -> dict:

@@ -16,10 +16,10 @@ services:
         fromDatabase:
           name: lost-in-frame-db
           property: connectionString
-      - key: ANTHROPIC_API_KEY
+      - key: GROQ_API_KEY
         sync: false
-      - key: ANTHROPIC_MODEL
-        value: claude-haiku-4-5
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
       - key: MAX_RETRIES
         value: "2"
       - key: LOG_LEVEL

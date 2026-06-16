@@ -6,8 +6,8 @@ BASE_DIR = Path(__file__).parent
 
 class Settings(BaseSettings):
     DATABASE_URL: str = f"sqlite:///{BASE_DIR}/lif_production.db"
-    ANTHROPIC_API_KEY: str = ""
-    ANTHROPIC_MODEL: str = "claude-haiku-4-5"
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
     MAX_RETRIES: int = 2
     RETRY_BACKOFF_BASE: float = 2.0
     WEBSOCKET_HEARTBEAT: int = 30
