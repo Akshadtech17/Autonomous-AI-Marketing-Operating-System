@@ -1,6 +1,8 @@
 # Lost In Frame Production
 ### Autonomous AI Marketing Operating System
 
+**Live Web App:** [https://lost-in-frame-production.netlify.app/](https://lost-in-frame-production.netlify.app/)
+
 A production-grade, multi-agent AI marketing platform that operates like a real marketing agency. Submit a campaign brief, and a coordinated team of AI agents autonomously plans, researches, writes content, builds social strategy, analyses performance, and generates a full executive PDF report — all in real time.
 
 ---
@@ -22,7 +24,7 @@ A production-grade, multi-agent AI marketing platform that operates like a real 
 
 ## Overview
 
-Lost In Frame Production is a **distributed multi-agent AI system** where seven specialized AI agents collaborate on a deterministic DAG (Directed Acyclic Graph) execution plan. Each agent runs sequentially, passes context forward, and the system tracks every state transition in a persistent SQLite database. The React frontend visualizes the running pipeline in real time via WebSocket, including a 3D agent-node graph rendered with React Three Fiber.
+Lost In Frame Production is a **distributed multi-agent AI system** where seven specialized AI agents collaborate on a deterministic DAG (Directed Acyclic Graph) execution plan. Each agent runs sequentially, passes context forward, and the system tracks every state transition in a persistent database. The React frontend visualizes the running pipeline in real time via WebSocket, including a 3D agent-node graph rendered with React Three Fiber.
 
 ---
 
@@ -59,14 +61,14 @@ Lost In Frame Production is a **distributed multi-agent AI system** where seven 
 │  └──────────────────────┬───────────────────────────────────────┘  │
 │                         │                                          │
 │  ┌──────────────────────▼───────────────────────────────────────┐  │
-│  │   SQLite DB (WAL mode)   │   Memory Manager   │  Event Emitter│ │
+│  │   PostgreSQL DB   │   Memory Manager   │  Event Emitter      │  │
 │  └───────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────┘
                          │
 ┌────────────────────────▼────────────────────────────────────────────┐
-│                    Ollama  :11434                                    │
-│            Local LLM inference (no cloud, no API keys)              │
-│  Primary: qwen2.5:0.5b  │  Fallback: qwen2.5:0.5b                  │
+│                    Groq API (cloud)                                  │
+│            llama-3.3-70b-versatile — free tier                      │
+│            30 req/min · 14,400 req/day                              │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -176,12 +178,13 @@ COMPLETED
 | API Framework | FastAPI 0.115 |
 | ASGI Server | Uvicorn (with standard extras) |
 | ORM | SQLAlchemy 2.0 |
-| Database | SQLite (WAL mode) |
+| Database | PostgreSQL (production) / SQLite (local) |
 | Validation | Pydantic v2 |
 | HTTP Client | HTTPX (async) |
 | WebSocket | FastAPI WebSocket + asyncio |
 | PDF Generation | ReportLab 4.2 |
 | Async Queue | Python asyncio.Queue (campaign worker) |
+| LLM | Groq API (`llama-3.3-70b-versatile`) |
 
 ### Frontend
 | Component | Technology |
@@ -198,33 +201,32 @@ COMPLETED
 | Routing | React Router v6 |
 | Date Utilities | date-fns |
 
+### Deployment
+| Component | Platform |
+|---|---|
+| Frontend | Netlify |
+| Backend | Render |
+| Database | Render PostgreSQL |
+| LLM Inference | Groq (free tier) |
+
 ---
 
 ## AI Models
 
-The system runs **100% locally** via [Ollama](https://ollama.com) — no external API keys required.
+The system uses the **Groq API** for fast, free LLM inference — no local GPU or Ollama required.
 
-| Role | Model | Size | Notes |
-|---|---|---|---|
-| Primary (all agents) | `qwen2.5:0.5b` | ~380 MB | Fast, low RAM (~500 MB VRAM) |
-| Fallback | `qwen2.5:0.5b` | ~380 MB | Same model used as fallback |
-| Optional upgrade | `qwen2.5:1.5b` | ~986 MB | Better output quality |
-| Optional upgrade | `llama3.2:3b` | ~2 GB | Higher reasoning quality |
-| Optional upgrade | `qwen3:8b` | ~5.2 GB | Best quality, needs 6+ GB RAM |
+| Role | Model | Notes |
+|---|---|---|
+| All agents | `llama-3.3-70b-versatile` | Free: 30 req/min, 14,400 req/day |
 
-To use a better model, update `config.py`:
-```python
-OLLAMA_PRIMARY_MODEL: str = "qwen2.5:1.5b"
-OLLAMA_FALLBACK_MODEL: str = "qwen2.5:0.5b"
-```
+To switch models, set the `GROQ_MODEL` environment variable to any model supported by Groq (e.g. `llama-3.1-8b-instant` for faster/lighter inference).
 
 ### LLM Integration Details
-- **Endpoint:** `POST http://localhost:11434/api/generate`
-- **Mode:** Non-streaming (`stream: false`)
-- **Temperature:** 0.4 (deterministic, consistent output)
-- **Context window:** 4096 tokens (`num_ctx`)
-- **Max tokens:** 2048 (`num_predict`)
-- **Truncation repair:** If `done_reason == "length"`, the system auto-repairs truncated JSON by closing open brackets/braces
+- **Provider:** [Groq](https://console.groq.com)
+- **Client:** `groq.AsyncGroq` (async Python SDK)
+- **Max tokens:** 2048
+- **Retries:** Configurable via `MAX_RETRIES` (default: 2) with exponential backoff
+- **JSON repair:** On JSON parse failure, agents auto-repair truncated responses by closing open brackets/braces
 - **Fallback:** On JSON parse failure, agents return a safe minimal `AgentOutput` instead of crashing the workflow
 
 ---
@@ -235,6 +237,8 @@ OLLAMA_FALLBACK_MODEL: str = "qwen2.5:0.5b"
 Lost In Frame Production/
 ├── .gitignore
 ├── README.md
+├── render.yaml                      # Render deployment config
+├── netlify.toml                     # Netlify build config
 ├── start.bat                        # Windows one-click launcher
 ├── start.sh                         # Unix one-click launcher
 │
@@ -280,7 +284,7 @@ Lost In Frame Production/
 │   │   └── event.py                 # SystemEvent, EventType enum
 │   │
 │   ├── services/
-│   │   └── ollama_service.py        # Ollama HTTP client, JSON extraction, truncation repair
+│   │   └── ollama_service.py        # Groq API client, JSON extraction, truncation repair
 │   │
 │   ├── memory/
 │   │   └── memory_manager.py        # Stores/retrieves agent outputs from DB for context
@@ -400,14 +404,9 @@ Event types: `CAMPAIGN_CREATED`, `STATE_CHANGED`, `AGENT_UPDATED`, `AGENT_FAILED
 ### Prerequisites
 - Python 3.11+
 - Node.js 18+
-- [Ollama](https://ollama.com) installed and running
+- A free [Groq API key](https://console.groq.com)
 
-### 1. Pull the AI model
-```bash
-ollama pull qwen2.5:0.5b
-```
-
-### 2. Backend
+### 1. Backend
 ```bash
 cd backend
 python -m venv venv
@@ -417,17 +416,19 @@ venv\Scripts\activate
 source venv/bin/activate
 
 pip install -r requirements.txt
+
+# Create a .env file (see Environment Variables below)
 python -m uvicorn main:app --reload --port 8000
 ```
 
-### 3. Frontend
+### 2. Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-### 4. Open the app
+### 3. Open the app
 ```
 http://localhost:5173
 ```
@@ -438,20 +439,19 @@ http://localhost:5173
 
 ## Environment Variables
 
-Create a `.env` file inside `backend/` to override defaults:
+Create a `.env` file inside `backend/`:
 
 ```env
-# Ollama
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_PRIMARY_MODEL=qwen2.5:0.5b
-OLLAMA_FALLBACK_MODEL=qwen2.5:0.5b
-OLLAMA_TIMEOUT=120
+# Groq LLM API (get free key at console.groq.com)
+GROQ_API_KEY=gsk_...
+GROQ_MODEL=llama-3.3-70b-versatile
 
-# Database
+# Database (defaults to SQLite locally)
 DATABASE_URL=sqlite:///./lif_production.db
 
 # Logging
 LOG_LEVEL=INFO
+MAX_RETRIES=2
 ```
 
 ---
@@ -460,12 +460,13 @@ LOG_LEVEL=INFO
 
 | Decision | Reason |
 |---|---|
-| SQLite with WAL mode | Zero-ops local database; WAL enables concurrent reads during writes |
+| Groq API (cloud) over local Ollama | Render deployment cannot run persistent local processes; Groq provides free, fast inference with no infrastructure overhead |
+| PostgreSQL on Render, SQLite locally | WAL-mode SQLite is zero-ops for local dev; PostgreSQL handles concurrent writes in production |
 | `flag_modified()` on JSON columns | SQLAlchemy doesn't detect in-place dict mutations; reassignment + flag forces change tracking |
 | asyncio.Queue worker | Decouples campaign execution from the HTTP request; prevents API timeouts on long runs |
 | Regex Vite proxy keys | Prevents `/campaign/` prefix-matching `/campaigns/` (Vite's default string matching is prefix-based) |
-| Truncation repair algorithm | Small models (0.5B) often hit the token limit mid-JSON; bracket-stack repair closes unclosed objects |
-| Pydantic `mode="before"` validators | Small models return dicts where strings are expected; coerce at the boundary instead of crashing |
+| JSON repair algorithm | LLMs occasionally hit token limits mid-JSON; bracket-stack repair closes unclosed objects |
+| Pydantic `mode="before"` validators | Models return dicts where strings are expected; coerce at the boundary instead of crashing |
 | Deterministic DAG | Topological sort guarantees every agent receives all upstream context; cycle detection prevents deadlocks |
 
 ---
