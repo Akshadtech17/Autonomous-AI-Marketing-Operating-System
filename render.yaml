@@ -16,14 +16,10 @@ services:
         fromDatabase:
           name: lost-in-frame-db
           property: connectionString
-      - key: OLLAMA_BASE_URL
-        value: http://localhost:11434
-      - key: OLLAMA_PRIMARY_MODEL
-        value: qwen2.5:0.5b
-      - key: OLLAMA_FALLBACK_MODEL
-        value: qwen2.5:0.5b
-      - key: OLLAMA_TIMEOUT
-        value: "120"
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ANTHROPIC_MODEL
+        value: claude-haiku-4-5
       - key: MAX_RETRIES
         value: "2"
       - key: LOG_LEVEL
