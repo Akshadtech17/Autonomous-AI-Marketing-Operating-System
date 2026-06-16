@@ -6,7 +6,13 @@ BASE_DIR = Path(__file__).parent
 
 class Settings(BaseSettings):
     DATABASE_URL: str = f"sqlite:///{BASE_DIR}/lif_production.db"
-    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    ANTHROPIC_API_KEY: str = ""
+    ANTHROPIC_MODEL: str = "claude-haiku-4-5"
+    MAX_RETRIES: int = 2
+    RETRY_BACKOFF_BASE: float = 2.0
+    WEBSOCKET_HEARTBEAT: int = 30
+    REPORT_OUTPUT_DIR: str = str(BASE_DIR / "reports" / "output")
+    LOG_LEVEL: str = "INFO"
 
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
@@ -15,14 +21,6 @@ class Settings(BaseSettings):
         if isinstance(v, str) and v.startswith("postgres://"):
             return v.replace("postgres://", "postgresql://", 1)
         return v
-    OLLAMA_PRIMARY_MODEL: str = "qwen2.5:0.5b"
-    OLLAMA_FALLBACK_MODEL: str = "qwen2.5:0.5b"
-    OLLAMA_TIMEOUT: int = 120
-    MAX_RETRIES: int = 2
-    RETRY_BACKOFF_BASE: float = 2.0
-    WEBSOCKET_HEARTBEAT: int = 30
-    REPORT_OUTPUT_DIR: str = str(BASE_DIR / "reports" / "output")
-    LOG_LEVEL: str = "INFO"
 
     class Config:
         env_file = ".env"
