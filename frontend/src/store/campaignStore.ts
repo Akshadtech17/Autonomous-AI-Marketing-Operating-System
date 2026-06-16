@@ -4,7 +4,7 @@ import { Campaign } from "@/services/api";
 interface CampaignStore {
   campaigns: Campaign[];
   activeCampaign: Campaign | null;
-  agentProgress: Record<string, { state: string; progress: number; message: string }>;
+  agentProgress: Record<string, { state: string; progress: number; message: string; confidence_score?: number }>;
   events: Array<{ id: string; type: string; agent?: string; message: string; timestamp: string }>;
 
   setCampaigns: (campaigns: Campaign[]) => void;
