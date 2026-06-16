@@ -1,0 +1,31 @@
+databases:
+  - name: lost-in-frame-db
+    plan: free
+    databaseName: lif_production
+    user: lif_user
+
+services:
+  - type: web
+    name: lost-in-frame-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: lost-in-frame-db
+          property: connectionString
+      - key: OLLAMA_BASE_URL
+        value: http://localhost:11434
+      - key: OLLAMA_PRIMARY_MODEL
+        value: qwen2.5:0.5b
+      - key: OLLAMA_FALLBACK_MODEL
+        value: qwen2.5:0.5b
+      - key: OLLAMA_TIMEOUT
+        value: "120"
+      - key: MAX_RETRIES
+        value: "2"
+      - key: LOG_LEVEL
+        value: INFO
