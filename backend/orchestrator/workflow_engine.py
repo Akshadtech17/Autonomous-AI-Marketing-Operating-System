@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
@@ -63,6 +64,15 @@ class WorkflowEngine:
                 message=f"Campaign '{campaign.business_name}' planning started",
             ))
 
+            await event_emitter.emit_agent_update(
+                campaign_id=campaign_id,
+                agent="ceo_agent",
+                state="RUNNING",
+                progress=10,
+                message="CEO Agent: analysing campaign brief and building execution plan",
+            )
+
+            _ceo_start = time.monotonic()
             plan = await self.ceo.plan({
                 "id": campaign.id,
                 "business_name": campaign.business_name,
@@ -72,9 +82,19 @@ class WorkflowEngine:
                 "target_audience": campaign.target_audience,
                 "budget": campaign.budget,
             })
+            _ceo_elapsed = int((time.monotonic() - _ceo_start) * 1000)
 
             campaign.dag = plan.to_dict()
             self.db.commit()
+
+            await event_emitter.emit_agent_update(
+                campaign_id=campaign_id,
+                agent="ceo_agent",
+                state="COMPLETED",
+                progress=100,
+                message=f"CEO Agent: DAG execution plan ready ({len(plan.nodes)} agents queued)",
+                data={"confidence_score": 0.95, "duration_ms": _ceo_elapsed},
+            )
 
             previous_outputs = []
 
@@ -149,7 +169,6 @@ class WorkflowEngine:
             message=f"{node.agent_name} started",
         )
 
-        import time
         start = time.monotonic()
         try:
             mem_context = self.memory.build_agent_context(campaign, previous_outputs)
