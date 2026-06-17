@@ -41,9 +41,9 @@ export function Reports() {
     <div className="flex-1 overflow-y-auto relative z-10">
       <Header title="Reports" />
 
-      <div className="p-6 space-y-5">
+      <div className="p-4 md:p-6 space-y-4 md:space-y-5">
         {/* Header row */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-[13px] text-slate-500">
               <span className="font-bold text-white" style={{ fontFamily: "'Syne', sans-serif" }}>{completed.length}</span>
@@ -86,7 +86,7 @@ export function Reports() {
             </div>
           </motion.div>
         ) : (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {completed.map((c, i) => {
               const ic = INDUSTRY_COLOR[c.industry] ?? INDUSTRY_COLOR.DEFAULT;
               const agentEntries = Object.entries(c.agent_outputs || {});

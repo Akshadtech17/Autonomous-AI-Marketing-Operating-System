@@ -113,9 +113,9 @@ export function Dashboard() {
     <div className="flex-1 overflow-y-auto relative z-10">
       <Header title="Dashboard" />
 
-      <div className="p-6 space-y-5">
+      <div className="p-4 md:p-6 space-y-4 md:space-y-5">
         {/* Stat cards */}
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {STATS_CONFIG.map(({ key, label, icon, color, glow }, i) => (
             <StatCard
               key={key}
@@ -130,12 +130,12 @@ export function Dashboard() {
         </div>
 
         {/* 3D vis + event feed */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="col-span-2 rounded-2xl overflow-hidden"
+            className="lg:col-span-2 rounded-2xl overflow-hidden"
             style={{
               background: "linear-gradient(135deg, rgba(12,19,37,0.9) 0%, rgba(8,13,26,0.95) 100%)",
               border: "1px solid rgba(99,102,241,0.1)",
@@ -203,18 +203,12 @@ export function Dashboard() {
           {/* Column labels */}
           {campaigns.length > 0 && (
             <div
-              className="grid px-6 py-2.5"
-              style={{
-                gridTemplateColumns: "1fr auto auto",
-                gap: "1rem",
-                borderBottom: "1px solid rgba(255,255,255,0.03)",
-              }}
+              className="flex items-center px-3 sm:px-6 py-2.5 gap-4"
+              style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}
             >
-              {["Business", "Status", "Created"].map((h) => (
-                <p key={h} className="text-[10px] font-bold tracking-[0.12em] uppercase" style={{ color: "#334155", fontFamily: "'Space Grotesk', sans-serif" }}>
-                  {h}
-                </p>
-              ))}
+              <p className="flex-1 text-[10px] font-bold tracking-[0.12em] uppercase" style={{ color: "#334155", fontFamily: "'Space Grotesk', sans-serif" }}>Business</p>
+              <p className="text-[10px] font-bold tracking-[0.12em] uppercase" style={{ color: "#334155", fontFamily: "'Space Grotesk', sans-serif" }}>Status</p>
+              <p className="hidden sm:block text-[10px] font-bold tracking-[0.12em] uppercase" style={{ color: "#334155", fontFamily: "'Space Grotesk', sans-serif" }}>Created</p>
             </div>
           )}
 
@@ -230,15 +224,11 @@ export function Dashboard() {
                 >
                   <Link
                     to={`/campaigns/${c.id}`}
-                    className="grid px-6 py-3.5 items-center transition-all duration-150 group"
-                    style={{
-                      gridTemplateColumns: "1fr auto auto",
-                      gap: "1rem",
-                    }}
+                    className="flex items-center gap-3 sm:gap-4 px-3 sm:px-6 py-3.5 transition-all duration-150 group"
                     onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(99,102,241,0.04)"; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
                   >
-                    <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
                       {/* Avatar */}
                       <div
                         className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-[11px] font-bold"
@@ -260,7 +250,7 @@ export function Dashboard() {
                     </div>
 
                     <div
-                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap"
+                      className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-semibold whitespace-nowrap flex-shrink-0"
                       style={{
                         background: badge.bg,
                         color: badge.text,
@@ -269,15 +259,16 @@ export function Dashboard() {
                       }}
                     >
                       <div className="w-1.5 h-1.5 rounded-full" style={{ background: badge.dot }} />
-                      {c.status.replace(/_/g, " ")}
+                      <span className="hidden xs:inline">{c.status.replace(/_/g, " ")}</span>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
                       <span className="text-[11px] text-slate-600 whitespace-nowrap">
                         {formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}
                       </span>
                       <ArrowRight className="w-3.5 h-3.5 text-slate-700 group-hover:text-indigo-400 transition-colors" />
                     </div>
+                    <ArrowRight className="sm:hidden w-3.5 h-3.5 text-slate-700 group-hover:text-indigo-400 transition-colors flex-shrink-0" />
                   </Link>
                 </motion.div>
               );

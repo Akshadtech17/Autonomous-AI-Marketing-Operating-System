@@ -53,10 +53,10 @@ export function CampaignDetail() {
   return (
     <div className="flex-1 overflow-y-auto">
       <Header title={campaign.business_name} />
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
 
         {/* Top bar */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <Link to="/" className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm">
             <ArrowLeft className="w-4 h-4" /> Back to Dashboard
           </Link>
@@ -114,11 +114,11 @@ export function CampaignDetail() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
           {/* Agent Grid */}
-          <div className="col-span-2 space-y-4">
+          <div className="lg:col-span-2 space-y-4">
             <h3 className="text-sm font-semibold text-white">Agent Execution</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {AGENT_ORDER.map((agentName) => {
                 const progress = agentProgress[agentName];
                 const output = campaign.agent_outputs?.[agentName];

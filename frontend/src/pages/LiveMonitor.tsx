@@ -33,10 +33,10 @@ export function LiveMonitor() {
     <div className="flex-1 overflow-y-auto relative z-10">
       <Header title="Live Monitor" />
 
-      <div className="p-6 space-y-5">
+      <div className="p-4 md:p-6 space-y-4 md:space-y-5">
 
         {/* Top stats row */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             { label: "Active Campaigns", value: active.length,                                                    color: "#6366f1" },
             { label: "Completed",        value: campaigns.filter((c) => c.status === "COMPLETED").length,         color: "#10b981" },
@@ -63,12 +63,12 @@ export function LiveMonitor() {
         </div>
 
         {/* 3D + event feed */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
-            className="col-span-2 rounded-2xl overflow-hidden"
+            className="lg:col-span-2 rounded-2xl overflow-hidden"
             style={{
               background: "linear-gradient(135deg, rgba(12,19,37,0.9) 0%, rgba(8,13,26,0.95) 100%)",
               border: "1px solid rgba(99,102,241,0.1)",
@@ -107,7 +107,7 @@ export function LiveMonitor() {
               <span className="text-[10px] text-slate-600">Real-time</span>
             </div>
           </div>
-          <div className="p-4 grid grid-cols-4 gap-3">
+          <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-3">
             {AGENT_NAMES.map((agentName, i) => {
               const progress = agentProgress[agentName];
               return (

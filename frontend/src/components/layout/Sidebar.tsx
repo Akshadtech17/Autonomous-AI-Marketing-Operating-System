@@ -1,23 +1,32 @@
+import { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import {
-  LayoutDashboard, Zap, Activity, FileText, BarChart3,
-} from "lucide-react";
+import { X, LayoutDashboard, Zap, Activity, FileText, BarChart3 } from "lucide-react";
+import { useUIStore } from "@/store/uiStore";
 
 const NAV = [
-  { to: "/",          icon: LayoutDashboard, label: "Dashboard",   color: "#6366f1", glow: "rgba(99,102,241,0.3)"  },
-  { to: "/campaigns", icon: Zap,             label: "Campaigns",   color: "#22d3ee", glow: "rgba(34,211,238,0.3)"  },
-  { to: "/monitor",   icon: Activity,        label: "Live Monitor",color: "#10b981", glow: "rgba(16,185,129,0.3)"  },
-  { to: "/reports",   icon: FileText,        label: "Reports",     color: "#a78bfa", glow: "rgba(167,139,250,0.3)" },
-  { to: "/analytics", icon: BarChart3,       label: "Analytics",   color: "#f59e0b", glow: "rgba(245,158,11,0.3)"  },
+  { to: "/",          icon: LayoutDashboard, label: "Dashboard",    color: "#6366f1", glow: "rgba(99,102,241,0.3)"  },
+  { to: "/campaigns", icon: Zap,             label: "Campaigns",    color: "#22d3ee", glow: "rgba(34,211,238,0.3)"  },
+  { to: "/monitor",   icon: Activity,        label: "Live Monitor", color: "#10b981", glow: "rgba(16,185,129,0.3)"  },
+  { to: "/reports",   icon: FileText,        label: "Reports",      color: "#a78bfa", glow: "rgba(167,139,250,0.3)" },
+  { to: "/analytics", icon: BarChart3,       label: "Analytics",    color: "#f59e0b", glow: "rgba(245,158,11,0.3)"  },
 ];
 
 export function Sidebar() {
   const { pathname } = useLocation();
+  const { sidebarOpen, closeSidebar } = useUIStore();
+
+  // Close drawer on navigation
+  useEffect(() => { closeSidebar(); }, [pathname]);
 
   return (
     <aside
-      className="w-[220px] flex flex-col h-screen relative z-20 overflow-hidden"
+      className={[
+        "w-[260px] md:w-[220px] flex flex-col h-screen z-40 overflow-hidden flex-shrink-0",
+        "fixed md:relative top-0 left-0",
+        "transition-transform duration-300 ease-in-out",
+        sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+      ].join(" ")}
       style={{
         background: "linear-gradient(180deg, rgba(8,13,26,0.98) 0%, rgba(5,8,17,0.99) 100%)",
         borderRight: "1px solid rgba(99,102,241,0.1)",
@@ -53,9 +62,9 @@ export function Sidebar() {
             />
           </div>
 
-          <div>
+          <div className="flex-1 min-w-0">
             <p
-              className="text-[13px] font-bold leading-tight tracking-tight"
+              className="text-[13px] font-bold leading-tight tracking-tight truncate"
               style={{ fontFamily: "'Syne', sans-serif", color: "#f1f5f9" }}
             >
               Lost In Frame
@@ -64,6 +73,15 @@ export function Sidebar() {
               AI Marketing OS
             </p>
           </div>
+
+          {/* Mobile close button */}
+          <button
+            onClick={closeSidebar}
+            className="md:hidden w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
+            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+          >
+            <X className="w-4 h-4 text-slate-500" />
+          </button>
         </div>
 
         {/* Separator */}
@@ -82,7 +100,7 @@ export function Sidebar() {
               <motion.div
                 whileHover={{ x: 3 }}
                 whileTap={{ scale: 0.97 }}
-                className="relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200"
+                className="relative flex items-center gap-3 px-3 py-3 md:py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200"
                 style={{
                   fontFamily: "'Space Grotesk', sans-serif",
                   color: active ? "#f1f5f9" : "#64748b",
@@ -105,14 +123,14 @@ export function Sidebar() {
 
                 {/* Icon container */}
                 <div
-                  className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200"
+                  className="w-8 h-8 md:w-7 md:h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200"
                   style={{
                     background: active ? `${color}25` : "transparent",
                     boxShadow: active ? `0 0 10px ${glow}` : "none",
                   }}
                 >
                   <Icon
-                    className="w-3.5 h-3.5"
+                    className="w-4 h-4 md:w-3.5 md:h-3.5"
                     style={{ color: active ? color : "#475569" }}
                   />
                 </div>
@@ -140,7 +158,7 @@ export function Sidebar() {
           className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
           style={{ background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.12)" }}
         >
-          <div className="relative">
+          <div className="relative flex-shrink-0">
             <div className="w-2 h-2 rounded-full bg-emerald-400" />
             <div className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-40" />
           </div>

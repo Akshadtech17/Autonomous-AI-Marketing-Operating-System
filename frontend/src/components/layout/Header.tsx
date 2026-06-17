@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Bell, ChevronRight } from "lucide-react";
+import { Search, Bell, ChevronRight, Menu } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCampaignStore } from "@/store/campaignStore";
+import { useUIStore } from "@/store/uiStore";
 
 const STATUS_COLOR: Record<string, string> = {
   COMPLETED: "#10b981",
@@ -21,6 +22,7 @@ export function Header({ title }: { title: string }) {
   const [cmdOpen, setCmdOpen] = useState(false);
   const [query, setQuery] = useState("");
   const { campaigns } = useCampaignStore();
+  const { toggleSidebar } = useUIStore();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -41,21 +43,33 @@ export function Header({ title }: { title: string }) {
   return (
     <>
       <header
-        className="h-14 flex items-center justify-between px-6 relative z-10 flex-shrink-0"
+        className="h-14 flex items-center justify-between px-3 md:px-6 relative z-10 flex-shrink-0"
         style={{
           background: "rgba(5,8,17,0.85)",
           backdropFilter: "blur(20px)",
           borderBottom: "1px solid rgba(99,102,241,0.1)",
         }}
       >
-        {/* Left: title breadcrumb */}
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-semibold tracking-widest uppercase" style={{ color: "#334155", fontFamily: "'Space Grotesk', sans-serif" }}>
+        {/* Left: hamburger (mobile) + title breadcrumb */}
+        <div className="flex items-center gap-2 min-w-0">
+          {/* Hamburger — mobile only */}
+          <button
+            onClick={toggleSidebar}
+            className="md:hidden w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200"
+            style={{
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.07)",
+            }}
+          >
+            <Menu className="w-4 h-4 text-slate-400" />
+          </button>
+
+          <span className="hidden sm:inline text-[11px] font-semibold tracking-widest uppercase flex-shrink-0" style={{ color: "#334155", fontFamily: "'Space Grotesk', sans-serif" }}>
             LIF
           </span>
-          <ChevronRight className="w-3 h-3 text-slate-700" />
+          <ChevronRight className="hidden sm:block w-3 h-3 text-slate-700 flex-shrink-0" />
           <h1
-            className="text-[15px] font-bold tracking-tight"
+            className="text-[14px] md:text-[15px] font-bold tracking-tight truncate"
             style={{ fontFamily: "'Syne', sans-serif", color: "#f1f5f9" }}
           >
             {title}
@@ -63,18 +77,19 @@ export function Header({ title }: { title: string }) {
         </div>
 
         {/* Right: controls */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           {/* Running badge */}
           {running > 0 && (
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+              className="flex items-center gap-1.5 px-2 py-1 rounded-full"
               style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.25)" }}
             >
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-[11px] font-semibold text-emerald-400" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                {running} running
+                <span className="hidden sm:inline">{running} running</span>
+                <span className="sm:hidden">{running}</span>
               </span>
             </motion.div>
           )}
@@ -82,7 +97,7 @@ export function Header({ title }: { title: string }) {
           {/* Search */}
           <button
             onClick={() => setCmdOpen(true)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12px] transition-all duration-200"
+            className="flex items-center gap-2 px-2.5 md:px-3 py-1.5 rounded-lg text-[12px] transition-all duration-200"
             style={{
               background: "rgba(255,255,255,0.04)",
               border: "1px solid rgba(255,255,255,0.07)",
@@ -100,10 +115,10 @@ export function Header({ title }: { title: string }) {
               (e.currentTarget as HTMLElement).style.color = "#64748b";
             }}
           >
-            <Search className="w-3 h-3" />
-            <span>Search</span>
+            <Search className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Search</span>
             <kbd
-              className="text-[10px] px-1 py-0.5 rounded"
+              className="hidden md:inline text-[10px] px-1 py-0.5 rounded"
               style={{ background: "rgba(255,255,255,0.06)", color: "#475569" }}
             >
               ⌘K
@@ -112,7 +127,7 @@ export function Header({ title }: { title: string }) {
 
           {/* Bell */}
           <button
-            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200"
+            className="w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200"
             style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
             onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(99,102,241,0.3)"; }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.07)"; }}
@@ -129,7 +144,7 @@ export function Header({ title }: { title: string }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-start justify-center pt-20"
+            className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-16 md:pt-20"
             style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)" }}
             onClick={() => setCmdOpen(false)}
           >
@@ -194,7 +209,7 @@ export function Header({ title }: { title: string }) {
                         <p className="text-[13px] font-medium text-slate-200 truncate">{c.business_name}</p>
                         <p className="text-[11px] text-slate-600 truncate">{c.industry} · {c.status.replace(/_/g, " ")}</p>
                       </div>
-                      <ChevronRight className="w-3.5 h-3.5 text-slate-700 group-hover:text-indigo-400 transition-colors" />
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-700 group-hover:text-indigo-400 transition-colors flex-shrink-0" />
                     </motion.button>
                   );
                 })}

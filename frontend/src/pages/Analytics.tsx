@@ -139,16 +139,16 @@ export function Analytics() {
     <div className="flex-1 overflow-y-auto relative z-10">
       <Header title="Analytics" />
 
-      <div className="p-6 space-y-5">
+      <div className="p-4 md:p-6 space-y-4 md:space-y-5">
         {/* KPI Cards */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <KPICard label="Total Campaigns"  value={campaigns.length.toString()} color="#6366f1" icon={Zap}       delay={0}    />
           <KPICard label="Success Rate"     value={successRate}                 color="#10b981" icon={Award}     delay={0.06} />
           <KPICard label="Avg Confidence"   value={`${avgConfidence}%`}         color="#a78bfa" icon={TrendingUp}delay={0.12} />
         </div>
 
         {/* Charts row */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <ChartCard title="Campaign Growth Trend" delay={0.18}>
             <ResponsiveContainer width="100%" height={200}>
               <AreaChart data={MOCK_TREND}>
@@ -232,7 +232,7 @@ export function Analytics() {
         {/* Agent confidence breakdown */}
         {campaigns.some((c) => c.agent_outputs && Object.keys(c.agent_outputs).length > 0) && (
           <ChartCard title="Agent Confidence Scores" delay={0.32}>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
                 { name: "CEO",       key: "ceo_agent",               color: "#a78bfa", icon: "👑" },
                 { name: "Research",  key: "research_agent",           color: "#22d3ee", icon: "🔬" },

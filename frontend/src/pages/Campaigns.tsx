@@ -47,9 +47,9 @@ export function Campaigns() {
     <div className="flex-1 overflow-y-auto relative z-10">
       <Header title="Campaigns" />
 
-      <div className="p-6 space-y-5">
+      <div className="p-4 md:p-6 space-y-4 md:space-y-5">
         {/* Toolbar */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <p className="text-[13px] text-slate-500">
               <span className="font-bold text-white" style={{ fontFamily: "'Syne', sans-serif" }}>{campaigns.length}</span>
@@ -82,7 +82,7 @@ export function Campaigns() {
 
         {/* Grid */}
         {campaigns.length > 0 ? (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {campaigns.map((c, i) => {
               const st = STATUS[c.status] ?? STATUS.CREATED;
               const industryColor = INDUSTRY_COLOR[c.industry] ?? "#6366f1";
