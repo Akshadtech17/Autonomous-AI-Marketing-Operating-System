@@ -1,0 +1,205 @@
+Lost In Frame Production — Project File Structure
+==================================================
+Directory tree with one-line description per file/folder.
+Generated from source code inspection of the live codebase.
+
+Lost In Frame Production/
+│
+├── README.md                          — Project documentation in IEEE paper format
+├── file_structure.txt                 — This file: directory and file layout with descriptions
+├── commands.txt                       — All commands needed to set up, run, build, and deploy the project
+├── .gitignore                         — Git ignore rules (excludes venv, node_modules, .env, __pycache__, dist)
+├── .python-version                    — Declares Python version for pyenv (3.11)
+├── requirements.txt                   — Root-level Python requirements (mirrors backend/requirements.txt)
+├── LICENSE                            — MIT open-source licence
+├── Procfile                           — Heroku/Render process file: starts uvicorn on $PORT
+├── render.yaml                        — Render deployment spec (PostgreSQL DB + Python web service)
+├── netlify.toml                       — Netlify build config: base=frontend, command=npm run build, publish=dist
+├── start.bat                          — Windows one-click launcher: opens backend + frontend in separate cmd windows
+├── start.sh                           — Unix one-click launcher: starts backend + frontend as background processes
+├── generate_system_report.py          — Standalone script that generates a system architecture PDF report
+│
+├── backend/                           — FastAPI Python backend (all server-side logic)
+│   ├── main.py                        — App entry point: creates FastAPI instance, registers routers, configures CORS,
+│   │                                    defines lifespan (init_db, start/stop campaign worker)
+│   ├── config.py                      — Pydantic BaseSettings: reads env vars (GROQ_API_KEY, GROQ_MODEL, DATABASE_URL,
+│   │                                    MAX_RETRIES, RETRY_BACKOFF_BASE, WEBSOCKET_HEARTBEAT, REPORT_OUTPUT_DIR, LOG_LEVEL)
+│   ├── database.py                    — SQLAlchemy engine setup (WAL+FK pragmas for SQLite; plain engine for PostgreSQL),
+│   │                                    SessionLocal factory, get_db() dependency, init_db() table creator
+│   ├── requirements.txt               — Python dependencies: fastapi, uvicorn, sqlalchemy, pydantic, groq, reportlab,
+│   │                                    httpx, websockets, python-dotenv, psycopg2-binary, pydantic-settings
+│   ├── .env.example                   — Template showing all required environment variable keys
+│   ├── lif_production.db              — SQLite database file (local development only; git-ignored in production)
+│   ├── lif_production.db-shm          — SQLite shared-memory WAL file (local only)
+│   ├── lif_production.db-wal          — SQLite write-ahead log file (local only)
+│   │
+│   ├── agents/                        — AI agent implementations (one file per agent domain)
+│   │   ├── __init__.py                — Empty package marker
+│   │   ├── base_agent.py              — Abstract BaseAgent: execute() drives LLM call + JSON extraction + fallback;
+│   │   │                                _build_prompt() builds structured prompt from campaign context and prior outputs;
+│   │   │                                _validate_output() coerces raw dict to AgentOutput; _fallback_output() safe default
+│   │   ├── ceo_agent.py               — CEOAgent (not derived from BaseAgent): plan() calls LLM to produce strategic
+│   │   │                                summary + builds DAGExecutionPlan; orchestrate() iterates DAG levels and drives
+│   │   │                                all seven specialist agents with start/complete/failed callbacks
+│   │   ├── research_agent.py          — ResearchAgent: market research specialist; overrides _build_prompt() to focus on
+│   │   │                                industry trends, target audience profile, top competitors, and opportunities
+│   │   ├── seo_agent.py               — SEOAgent: keyword strategy, search intent mapping, on-page and local SEO;
+│   │   │                                reads research_agent output from context to ground keyword recommendations
+│   │   ├── content_agent.py           — ContentAgent: editorial calendar themes, blog topics, email series concept,
+│   │   │                                brand voice; reads seo_agent keyword output from context
+│   │   ├── social_agent.py            — SocialMediaAgent: platform selection, posting frequency, sample post ideas,
+│   │   │                                paid social budget split, KPIs across Instagram/TikTok/LinkedIn/X/YouTube
+│   │   ├── analytics_agent.py         — AnalyticsAgent: 5 primary KPIs with targets, tracking tool recommendations,
+│   │   │                                90-day traffic forecast, ROI estimate
+│   │   ├── creative_agent.py          — CreativeDirectorAgent: brand positioning statement, visual identity (colours,
+│   │   │                                typography, tone), campaign big idea, two creative concepts
+│   │   └── report_agent.py            — ReportAgent: synthesises all prior agent outputs into executive summary,
+│   │                                    top 3 strategic priorities, 90-day action plan with expected ROI
+│   │
+│   ├── api/                           — FastAPI APIRouter definitions (HTTP endpoints + WebSocket endpoints)
+│   │   ├── __init__.py                — Exports campaign_router, agent_router, report_router, ws_router
+│   │   ├── campaign_router.py         — POST /campaign/create, POST /{id}/run, GET /{id}/status,
+│   │   │                                GET /{id}/logs, GET / (list campaigns)
+│   │   ├── agent_router.py            — GET /agents/ — returns agent definitions and capability metadata
+│   │   ├── report_router.py           — GET /report/{campaign_id} — serves generated PDF as file response
+│   │   └── websocket_router.py        — WS /ws/campaign/{id} (campaign-scoped stream),
+│   │                                    WS /ws/global (all-campaign stream); 30-second heartbeat keep-alive
+│   │
+│   ├── core/                          — Framework internals: DAG, state machine, event bus
+│   │   ├── __init__.py                — Empty package marker
+│   │   ├── dag_engine.py              — DAGEngine: builds DAGExecutionPlan from AGENT_SEQUENCE; Kahn's BFS topological
+│   │   │                                sort; cycle detection; NodeStatus enum (PENDING/READY/RUNNING/COMPLETED/FAILED/SKIPPED);
+│   │   │                                DAGNode and DAGExecutionPlan dataclasses; get_ready_nodes(), mark_completed(),
+│   │   │                                mark_failed(), is_complete(), has_failed() helpers
+│   │   ├── state_machine.py           — StateMachine: wraps CampaignStatus; transition() enforces VALID_TRANSITIONS dict;
+│   │   │                                StateTransitionError raised on illegal edge; can_transition(), is_terminal()
+│   │   └── event_emitter.py           — EventEmitter singleton: per-campaign and global WebSocket connection sets;
+│   │                                    200-event per-campaign history buffer with replay on new connect;
+│   │                                    emit(), emit_agent_update(), emit_state_change(), emit_sync() helpers
+│   │
+│   ├── models/                        — SQLAlchemy ORM models (mapped to database tables)
+│   │   ├── __init__.py                — Empty package marker
+│   │   ├── campaign.py                — Campaign table: id, business_name, industry, location, goal, target_audience,
+│   │   │                                budget, status (CampaignStatus enum), dag (JSON), agent_outputs (JSON),
+│   │   │                                report_path, error_message, created_at, updated_at, completed_at;
+│   │   │                                VALID_TRANSITIONS dict encoding permitted state edges
+│   │   ├── agent_log.py               — AgentLog table: per-agent execution record with campaign_id FK, agent_name,
+│   │   │                                task_id, input (JSON), output (JSON), state (AgentState enum), confidence_score,
+│   │   │                                retry_count, error_message, duration_ms, model_used, timestamp, completed_at
+│   │   └── memory_store.py            — MemoryStore table: key-value store keyed by (campaign_id, memory_type, key);
+│   │                                    MemoryType enum: GLOBAL, BUSINESS, SESSION
+│   │
+│   ├── orchestrator/                  — Top-level campaign execution coordinator
+│   │   ├── __init__.py                — Empty package marker
+│   │   └── workflow_engine.py         — WorkflowEngine: instantiates CEOAgent and MemoryManager; run_campaign() drives
+│   │                                    state machine transitions, calls ceo.orchestrate() with DB-backed callbacks;
+│   │                                    _make_start_handler(), _make_complete_handler(), _make_failed_handler() closures
+│   │                                    handle DB writes and WebSocket events per agent lifecycle event
+│   │
+│   ├── schemas/                       — Pydantic v2 request/response models
+│   │   ├── __init__.py                — Empty package marker
+│   │   ├── agent.py                   — AgentOutput (output, key_insights, confidence_score, dependencies,
+│   │   │                                memory_updates, timestamp) with mode="before" coercion validators;
+│   │   │                                AgentLogResponse for API serialization
+│   │   ├── campaign.py                — CampaignCreate (input), CampaignResponse (full record), CampaignSummary (list view)
+│   │   └── event.py                   — SystemEvent (campaign_id, type, agent, state, progress, message, data, timestamp);
+│   │                                    EventType enum: CAMPAIGN_CREATED, STATE_CHANGED, AGENT_UPDATE, AGENT_FAILED,
+│   │                                    REPORT_GENERATED, HEARTBEAT
+│   │
+│   ├── services/                      — External service integrations
+│   │   ├── __init__.py                — Empty package marker
+│   │   └── ollama_service.py          — OllamaService: thin wrapper over groq.AsyncGroq; generate() with configurable
+│   │                                    retry + exponential backoff; extract_json() with four fallback strategies
+│   │                                    (direct parse → regex object → code-block → bracket-stack repair);
+│   │                                    _repair_truncated() closes unclosed JSON objects/arrays/strings
+│   │
+│   ├── memory/                        — Agent context persistence
+│   │   ├── __init__.py                — Empty package marker
+│   │   └── memory_manager.py          — MemoryManager: write() upserts MemoryStore records; read() retrieves by key;
+│   │                                    build_agent_context() assembles the context dict injected into each agent prompt
+│   │                                    (campaign_context + previous_outputs + global_memory + business_memory);
+│   │                                    store_agent_output() persists each agent's JSON output under SESSION scope;
+│   │                                    get_all_session_outputs() retrieves all agent outputs for a campaign
+│   │
+│   ├── workers/                       — Async background task processing
+│   │   ├── __init__.py                — Empty package marker
+│   │   └── campaign_worker.py         — CampaignWorker: asyncio.Queue-based consumer; enqueue() adds campaign IDs;
+│   │                                    start() runs the event loop, spawning asyncio tasks per campaign;
+│   │                                    _process() opens a DB session and calls WorkflowEngine.run_campaign()
+│   │
+│   └── reports/                       — PDF report generation
+│       ├── __init__.py                — Empty package marker
+│       ├── pdf_generator.py           — PDFReportGenerator: ReportLab Platypus document builder; generates A4 PDF
+│       │                                with cover page, metadata table, table of contents, one section per agent
+│       │                                (output text + key_insights + confidence_score), VerticalBarChart traffic
+│       │                                forecast, and branded footer; saves to REPORT_OUTPUT_DIR
+│       └── output/                    — Generated PDF report files (git-ignored; created at runtime)
+│
+└── frontend/                          — React 18 + TypeScript single-page application
+    ├── index.html                     — HTML entry point; mounts React root at #root
+    ├── package.json                   — Node dependencies + npm scripts (dev, build, preview, lint)
+    ├── package-lock.json              — Exact locked dependency tree (npm install reproducibility)
+    ├── vite.config.ts                 — Vite dev server config: path alias @ → src; regex proxy rules to route
+    │                                    /campaign/* and /report/* to backend at localhost:8000
+    ├── tailwind.config.js             — Tailwind CSS theme extension (dark background palette, font families)
+    ├── postcss.config.js              — PostCSS pipeline: tailwindcss + autoprefixer
+    ├── tsconfig.json                  — TypeScript strict config; paths alias @ → ./src
+    ├── tsconfig.node.json             — TypeScript config for Vite build scripts (ESNext + bundler module resolution)
+    │
+    └── src/
+        ├── main.tsx                   — React root: wraps App in BrowserRouter-independent QueryClientProvider;
+        │                                creates TanStack QueryClient; renders into #root
+        ├── App.tsx                    — Top-level layout: Sidebar + mobile backdrop overlay + AnimatePresence route
+        │                                transitions; defines all seven application routes
+        ├── index.css                  — Tailwind @base/@components/@utilities; global body background (#060a14);
+        │                                Space Grotesk + Syne Google Fonts import; btn-primary utility class; scrollbar styles
+        ├── vite-env.d.ts              — Vite ImportMeta env type declaration
+        │
+        ├── pages/                     — Full-page route components
+        │   ├── Dashboard.tsx          — Stat cards (total/completed/active/failed), 3D agent network + event feed,
+        │   │                            recent campaigns list, product guide section (how-it-works, 8 agent cards, roadmap)
+        │   ├── Campaigns.tsx          — Paginated campaign list with status badge filtering and sort
+        │   ├── CampaignDetail.tsx     — Live campaign view: status header, per-agent AgentStatusCard grid,
+        │   │                            expandable agent output accordion, re-run button
+        │   ├── LiveMonitor.tsx        — Real-time dashboard: 3 stat cards, 3D visualization, EventFeed, AgentStatusCard
+        │   │                            grid, running-campaigns list; consumes global WebSocket
+        │   ├── Analytics.tsx          — Recharts bar/line charts visualizing campaign completion and status distribution
+        │   └── Reports.tsx            — Lists completed campaigns with PDF download links via /report/{id}
+        │
+        ├── components/
+        │   ├── campaign/
+        │   │   ├── CampaignForm.tsx   — Controlled form for creating campaigns: business_name, industry, location,
+        │   │   │                        goal (textarea), target_audience, budget; POST to /campaign/create then
+        │   │   │                        POST to /campaign/{id}/run; navigates to /campaigns/{id} on success
+        │   │   └── AgentStatusCard.tsx— Displays per-agent state pill (PENDING/RUNNING/COMPLETED/FAILED), animated
+        │   │                            progress bar, message text, and confidence score badge
+        │   ├── layout/
+        │   │   ├── Header.tsx         — Top navigation bar with page title and mobile hamburger toggle
+        │   │   └── Sidebar.tsx        — Left navigation: links to Dashboard, Campaigns, Live Monitor, Analytics, Reports;
+        │   │                            collapses to overlay on mobile; reads/writes sidebarOpen from uiStore
+        │   └── live/
+        │       └── EventFeed.tsx      — Scrollable list of the last 100 WebSocket events; color-coded by event type;
+        │                                shows agent name, message, and relative timestamp
+        │
+        ├── three/
+        │   └── SystemVisualization.tsx— React Three Fiber Canvas: 8 AgentNode sphere meshes with emissive materials
+        │                                and scale-pulse animation when RUNNING; DataFlow Line primitives with animated
+        │                                particle traversal between connected nodes; OrbitControls with auto-rotate;
+        │                                responds to live agentProgress from Zustand store
+        │
+        ├── hooks/
+        │   └── useWebSocket.ts        — useCampaignWebSocket(campaignId): connects to /ws/campaign/{id}, routes
+        │                                AGENT_UPDATE events to updateAgentProgress and STATE_CHANGED to updateCampaignStatus;
+        │                                useGlobalWebSocket(): connects to /ws/global for cross-campaign status updates
+        │
+        ├── services/
+        │   ├── api.ts                 — REST client: api.campaigns.list(), api.campaigns.get(id), api.campaigns.create(),
+        │   │                            api.campaigns.run(id), api.campaigns.logs(id); base URL from env or localhost:8000
+        │   └── websocket.ts           — CampaignWebSocket class: manages WebSocket connection lifecycle; subscribe()
+        │                                returns unsubscribe function; routes "global" id to /ws/global endpoint
+        │
+        └── store/
+            ├── campaignStore.ts       — Zustand store: campaigns[], activeCampaign, agentProgress{}, events[];
+            │                            setCampaigns, setActiveCampaign, updateCampaignStatus, updateAgentProgress,
+            │                            addEvent (capped at 100), clearEvents
+            └── uiStore.ts             — Zustand store: sidebarOpen boolean; openSidebar(), closeSidebar(), toggleSidebar()

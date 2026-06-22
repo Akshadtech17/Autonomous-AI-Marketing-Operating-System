@@ -1,0 +1,359 @@
+Lost In Frame Production — Command Reference
+=============================================
+All commands needed to set up, run, build, test, and deploy the project.
+Run backend commands from the project root or from the backend/ directory as indicated.
+Run frontend commands from the frontend/ directory.
+
+Prerequisites
+-------------
+  - Python 3.11+
+  - Node.js 18+ and npm
+  - A free Groq API key from https://console.groq.com
+  - Git
+
+
+==============================================================================
+SECTION 1 — SETUP / INSTALLATION
+==============================================================================
+
+1.1  Clone the repository
+     --------------------
+     git clone <repo-url> "Lost In Frame Production"
+     cd "Lost In Frame Production"
+     # Clones the project and enters the root directory.
+
+1.2  Create a Python virtual environment (backend)
+     -----------------------------------------------
+     cd backend
+     python -m venv venv
+     # Creates an isolated Python 3.11 environment in backend/venv/.
+
+1.3  Activate the virtual environment
+     ----------------------------------
+     # Windows (PowerShell):
+     venv\Scripts\Activate.ps1
+
+     # Windows (cmd.exe):
+     venv\Scripts\activate.bat
+
+     # macOS / Linux:
+     source venv/bin/activate
+     # Must be active before running any backend Python commands.
+
+1.4  Install Python dependencies
+     ----------------------------
+     pip install -r requirements.txt
+     # Run from inside backend/ with the venv active.
+     # Installs: fastapi, uvicorn, sqlalchemy, pydantic, groq, reportlab,
+     #            httpx, websockets, python-dotenv, psycopg2-binary, pydantic-settings.
+
+1.5  Create the backend environment file
+     -------------------------------------
+     cp .env.example .env
+     # (macOS/Linux) — or copy manually on Windows.
+     # Then open backend/.env and fill in:
+     #   GROQ_API_KEY=gsk_<your-key-from-console.groq.com>
+     #   GROQ_MODEL=llama-3.3-70b-versatile
+     #   DATABASE_URL=sqlite:///./lif_production.db    # local SQLite default
+     #   MAX_RETRIES=2
+     #   LOG_LEVEL=INFO
+
+1.6  Install Node.js dependencies (frontend)
+     -----------------------------------------
+     cd ../frontend
+     npm install
+     # Installs all packages from frontend/package.json including:
+     # react, react-router-dom, @react-three/fiber, @react-three/drei,
+     # three, framer-motion, zustand, @tanstack/react-query, recharts,
+     # tailwindcss, vite, typescript.
+
+
+==============================================================================
+SECTION 2 — ENVIRONMENT / CONFIGURATION
+==============================================================================
+
+2.1  Required environment variables (backend/.env)
+     ------------------------------------------------
+     GROQ_API_KEY=gsk_...          # Groq cloud API key (required)
+     GROQ_MODEL=llama-3.3-70b-versatile  # LLM model name (default)
+     DATABASE_URL=sqlite:///./lif_production.db   # SQLite for local dev
+     MAX_RETRIES=2                 # LLM call retry attempts on failure
+     RETRY_BACKOFF_BASE=2.0        # Exponential backoff base (seconds)
+     WEBSOCKET_HEARTBEAT=30        # WebSocket heartbeat interval (seconds)
+     LOG_LEVEL=INFO                # Logging verbosity (DEBUG/INFO/WARNING/ERROR)
+     REPORT_OUTPUT_DIR=./reports/output  # Directory for generated PDF files
+
+2.2  Switch to PostgreSQL (optional)
+     ----------------------------------
+     DATABASE_URL=postgresql://user:password@host:5432/dbname
+     # Set in backend/.env. The config.py validator automatically converts
+     # postgres:// prefixes (as supplied by Render) to postgresql://.
+
+2.3  Change the LLM model
+     ----------------------
+     GROQ_MODEL=llama-3.1-8b-instant
+     # Any model available in your Groq account can be used.
+     # Smaller models are faster; larger models (70b) produce higher-quality output.
+
+2.4  Frontend API base URL
+     -----------------------
+     # Configured in frontend/vite.config.ts via the proxy target.
+     # Default dev proxy: http://localhost:8000
+     # For production, set VITE_API_URL in a frontend/.env or netlify environment.
+
+
+==============================================================================
+SECTION 3 — RUNNING THE PROJECT (DEVELOPMENT)
+==============================================================================
+
+3.1  Start the backend (FastAPI + Uvicorn)
+     ----------------------------------------
+     cd backend
+     # Ensure venv is active and .env is configured, then:
+     python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+     # --reload: auto-restarts on file changes (development mode only).
+     # Backend will be available at http://localhost:8000
+     # Interactive API docs: http://localhost:8000/docs
+     # ReDoc: http://localhost:8000/redoc
+
+3.2  Start the frontend (Vite dev server)
+     -----------------------------------------
+     cd frontend
+     npm run dev
+     # Starts Vite HMR dev server.
+     # Frontend will be available at http://localhost:5173
+     # API requests are proxied to localhost:8000 via vite.config.ts.
+
+3.3  Start both services at once (Windows)
+     ----------------------------------------
+     # From the project root:
+     start.bat
+     # Opens backend and frontend in separate cmd.exe windows.
+     # Runs pip install and npm install automatically before starting.
+
+3.4  Start both services at once (macOS / Linux)
+     ------------------------------------------------
+     # From the project root:
+     bash start.sh
+     # Starts backend and frontend as background processes.
+     # Press Ctrl+C to stop both.
+     # Runs pip install and npm install automatically before starting.
+
+3.5  Initialize the database manually (SQLite)
+     ----------------------------------------------
+     cd backend
+     python -c "from database import init_db; init_db()"
+     # Creates all SQLAlchemy tables in lif_production.db.
+     # Normally called automatically on app startup via the lifespan hook.
+
+3.6  Check the backend health endpoint
+     -------------------------------------
+     curl http://localhost:8000/health
+     # Returns: {"status": "healthy", "worker": "running"}
+
+3.7  Create a campaign via REST API (curl)
+     -----------------------------------------
+     curl -X POST http://localhost:8000/campaign/create \
+       -H "Content-Type: application/json" \
+       -d '{
+         "business_name": "Acme Coffee",
+         "industry": "Food & Beverage",
+         "location": "Melbourne, Australia",
+         "goal": "Increase online sales by 30% in 90 days",
+         "target_audience": "Coffee enthusiasts aged 25-40",
+         "budget": "$5000"
+       }'
+     # Returns the campaign JSON including the generated id.
+
+3.8  Run a campaign via REST API (curl)
+     ----------------------------------------
+     curl -X POST http://localhost:8000/campaign/<campaign_id>/run
+     # Enqueues the campaign. Returns HTTP 202 immediately.
+     # The 8-agent pipeline runs asynchronously in the background.
+
+3.9  Poll campaign status (curl)
+     --------------------------------
+     curl http://localhost:8000/campaign/<campaign_id>/status
+     # Returns full campaign record including status, dag, and agent_outputs.
+
+3.10 Download the generated PDF report (curl)
+      -------------------------------------------
+      curl -o report.pdf http://localhost:8000/report/<campaign_id>
+      # Downloads the PDF to report.pdf in the current directory.
+
+
+==============================================================================
+SECTION 4 — BUILDING FOR PRODUCTION
+==============================================================================
+
+4.1  Build the frontend (production bundle)
+     -------------------------------------------
+     cd frontend
+     npm run build
+     # Runs TypeScript compilation (tsc) then Vite production build.
+     # Output written to frontend/dist/ (optimized, minified assets).
+     # This is what Netlify deploys.
+
+4.2  Preview the production build locally
+     -----------------------------------------
+     cd frontend
+     npm run preview
+     # Serves the built frontend/dist/ at http://localhost:4173 for local testing.
+     # Does not start a proxy to the backend — use with a running backend.
+
+4.3  Type-check the frontend
+     -------------------------
+     cd frontend
+     npx tsc --noEmit
+     # Runs the TypeScript compiler without emitting files.
+     # Reports type errors across all .ts and .tsx files.
+
+4.4  Lint the frontend
+     --------------------
+     cd frontend
+     npm run lint
+     # Runs ESLint on all .ts and .tsx files.
+     # Configured to treat all warnings as errors (--max-warnings 0).
+
+4.5  Generate a standalone system architecture PDF
+     --------------------------------------------------
+     cd ..   # Return to project root
+     python generate_system_report.py
+     # Generates a PDF overview of the system architecture.
+     # Output is written to reports/ in the project root.
+
+
+==============================================================================
+SECTION 5 — TESTING
+==============================================================================
+
+No automated test suite is included in this version of the project.
+The following manual verification steps are recommended:
+
+5.1  Backend integration test — full pipeline
+     --------------------------------------------
+     # 1. Start the backend (see 3.1).
+     # 2. Create a campaign (see 3.7).
+     # 3. Run the campaign (see 3.8).
+     # 4. Watch the WebSocket event stream:
+     #    Open http://localhost:5173/monitor in the browser.
+     # 5. Poll status until COMPLETED (see 3.9).
+     # 6. Download the PDF (see 3.10).
+
+5.2  Frontend smoke test
+     ----------------------
+     # 1. Start both services (see 3.3 or 3.4).
+     # 2. Open http://localhost:5173 — verify the Dashboard loads.
+     # 3. Navigate to /campaigns/new — fill in the form and submit.
+     # 4. Confirm redirect to campaign detail page with PLANNING status.
+     # 5. Observe the 3D agent graph activate nodes as agents run.
+     # 6. Confirm COMPLETED status and PDF download link on /reports.
+
+5.3  WebSocket connection test
+     -----------------------------
+     # Using websocat (https://github.com/vi/websocat):
+     websocat ws://localhost:8000/ws/global
+     # All system events across all campaigns will print to stdout.
+
+5.4  API schema validation (FastAPI auto-docs)
+     ----------------------------------------------
+     # Open http://localhost:8000/docs
+     # Use the interactive Swagger UI to exercise all endpoints.
+     # OpenAPI schema is auto-generated from Pydantic models.
+
+
+==============================================================================
+SECTION 6 — DEPLOYMENT
+==============================================================================
+
+6.1  Deploy backend to Render
+     ---------------------------
+     # The render.yaml file at the project root defines:
+     #   - A PostgreSQL database named lost-in-frame-db
+     #   - A Python web service named lost-in-frame-backend
+     # Steps:
+     #   1. Connect the GitHub repository to Render.
+     #   2. Render reads render.yaml and creates the database + web service.
+     #   3. Set GROQ_API_KEY in the Render dashboard (Environment tab).
+     #   4. Render runs: pip install -r backend/requirements.txt
+     #      then: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
+     # DATABASE_URL is automatically injected from the linked database.
+
+     # Manual deploy trigger via Render CLI:
+     render deploy
+
+6.2  Deploy frontend to Netlify
+     --------------------------------
+     # The netlify.toml file at the project root defines:
+     #   base    = "frontend"
+     #   command = "npm run build"
+     #   publish = "dist"
+     # Steps:
+     #   1. Connect the GitHub repository to Netlify.
+     #   2. Netlify reads netlify.toml and runs npm run build in frontend/.
+     #   3. The frontend/dist/ directory is published as the static site.
+     #   4. Set VITE_API_URL to the Render backend URL in Netlify's
+     #      Environment Variables settings (Site → Build & Deploy → Environment).
+
+     # Manual deploy via Netlify CLI:
+     cd frontend
+     npm run build
+     netlify deploy --dir=dist --prod
+
+6.3  Database migrations (manual, SQLAlchemy)
+     ---------------------------------------------
+     # There is no Alembic migration setup. Schema changes are applied by:
+     cd backend
+     python -c "from database import Base, engine; Base.metadata.create_all(bind=engine)"
+     # This is safe to run on an existing database — it only creates missing tables.
+     # Dropping and recreating tables must be done manually for destructive changes.
+
+6.4  Environment variables required in production (Render)
+     ---------------------------------------------------------
+     GROQ_API_KEY        — Groq cloud API key
+     GROQ_MODEL          — llama-3.3-70b-versatile (or any Groq-hosted model)
+     DATABASE_URL        — Auto-injected by Render from the linked PostgreSQL service
+     MAX_RETRIES         — 2 (default)
+     LOG_LEVEL           — INFO (default)
+
+6.5  Check production health
+     -------------------------
+     curl https://<your-render-service>.onrender.com/health
+     # Returns: {"status": "healthy", "worker": "running"}
+     # The Render free tier spins down after inactivity; the first request
+     # may take 30–60 seconds to cold-start.
+
+
+==============================================================================
+QUICK REFERENCE CARD
+==============================================================================
+
+  Task                             Command (from backend/)
+  -------                          -------
+  Activate venv (Windows PS)       venv\Scripts\Activate.ps1
+  Activate venv (Unix)             source venv/bin/activate
+  Install Python deps              pip install -r requirements.txt
+  Start backend (dev)              python -m uvicorn main:app --reload --port 8000
+  Start backend (prod)             uvicorn main:app --host 0.0.0.0 --port 8000
+
+  Task                             Command (from frontend/)
+  -------                          -------
+  Install JS deps                  npm install
+  Start frontend dev server        npm run dev
+  Build for production             npm run build
+  Preview production build         npm run preview
+  Type-check                       npx tsc --noEmit
+  Lint                             npm run lint
+
+  Task                             Command (from project root)
+  -------                          -------
+  Start everything (Windows)       start.bat
+  Start everything (Unix)          bash start.sh
+  Generate architecture PDF        python generate_system_report.py
+
+  URLs (local development)
+  -------
+  Frontend:                        http://localhost:5173
+  Backend API:                     http://localhost:8000
+  Swagger / OpenAPI docs:          http://localhost:8000/docs
+  ReDoc API reference:             http://localhost:8000/redoc
