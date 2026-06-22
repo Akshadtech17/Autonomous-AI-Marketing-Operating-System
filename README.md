@@ -1,5 +1,5 @@
 # Lost In Frame Production: An Autonomous Multi-Agent AI Marketing Operating System
-ive deployment: https://lost-in-frame-production.netlify.app/ Repository: Lost In Frame Production.
+Live deployment: https://lost-in-frame-production.netlify.app/ Repository: Lost In Frame Production.
 
 ---
 
